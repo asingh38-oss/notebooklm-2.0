@@ -2,7 +2,7 @@
 openai>=1.0.0
 
 # Gradio (Hugging Face Spaces runtime)
-gradio>=4.44.0
+gradio>=5.0.0
 
 # Vector database
 chromadb>=0.5.0
