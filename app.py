@@ -263,23 +263,6 @@ label, .gr-block-label {
     border: 1px solid var(--border) !important;
     border-radius: var(--r) !important;
 }
-.message.user {
-    background: var(--bg4) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: var(--r) !important;
-    font-family: var(--mono) !important;
-    font-size: 0.85rem !important;
-    color: var(--text) !important;
-}
-.message.bot {
-    background: var(--bg3) !important;
-    border: 1px solid var(--border2) !important;
-    border-left: 3px solid var(--accent) !important;
-    border-radius: var(--r) !important;
-    font-family: var(--mono) !important;
-    font-size: 0.85rem !important;
-    color: var(--text) !important;
-}
 
 .gr-markdown {
     background: var(--bg3) !important;
@@ -378,15 +361,17 @@ def build_ui() -> gr.Blocks:
                 # TAB 1 — CHAT
                 with gr.TabItem("💬  Chat"):
                     chatbot = gr.Chatbot(
-                        label="", height=460,
-                        show_label=False, bubble_full_width=False,
+                        label="",
+                        height=460,
+                        show_label=False,
+                        bubble_full_width=False,
                     )
                     with gr.Row():
-                        inp_chat  = gr.Textbox(
+                        inp_chat = gr.Textbox(
                             placeholder="Ask anything about your sources…",
                             label="", show_label=False, scale=5, lines=1,
                         )
-                        btn_send  = gr.Button("Send →", scale=1, variant="primary")
+                        btn_send = gr.Button("Send →", scale=1, variant="primary")
                     btn_clear = gr.Button("Clear chat", size="sm")
 
                 # TAB 2 — SOURCES
@@ -402,8 +387,8 @@ def build_ui() -> gr.Blocks:
                             btn_upload = gr.Button("Ingest Files", variant="primary")
                         with gr.Column(scale=1):
                             gr.Markdown("### Add URL")
-                            inp_url  = gr.Textbox(label="Web URL", placeholder="https://…")
-                            btn_url  = gr.Button("Ingest URL", variant="primary")
+                            inp_url = gr.Textbox(label="Web URL", placeholder="https://…")
+                            btn_url = gr.Button("Ingest URL", variant="primary")
 
                     md_ingest = gr.Markdown("")
                     gr.Markdown("---")
@@ -590,9 +575,9 @@ def build_ui() -> gr.Blocks:
 if __name__ == "__main__":
     demo = build_ui()
     demo.launch(
-    server_name="0.0.0.0",
-    server_port=7860,
-    share=False,
-    css=CSS,
-    theme=gr.themes.Base(),
-)
+        server_name="0.0.0.0",
+        server_port=7860,
+        share=False,
+        css=CSS,
+        theme=gr.themes.Base(),
+    )
