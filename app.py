@@ -336,7 +336,7 @@ audio { width: 100%; border-radius: var(--r); }
 
 def build_ui() -> gr.Blocks:
 
-    with gr.Blocks(css=CSS, title="NotebookLM 2.0", theme=gr.themes.Base()) as demo:
+    with gr.Blocks(title="NotebookLM 2.0") as demo:
 
         # ── Persistent state ───────────────────────────────────────────────
         s_user  = gr.State("")
@@ -378,7 +378,7 @@ def build_ui() -> gr.Blocks:
                 # TAB 1 — CHAT
                 with gr.TabItem("💬  Chat"):
                     chatbot = gr.Chatbot(
-                        label="", height=460, type="messages",
+                        label="", height=460,
                         show_label=False, bubble_full_width=False,
                     )
                     with gr.Row():
@@ -589,4 +589,10 @@ def build_ui() -> gr.Blocks:
 
 if __name__ == "__main__":
     demo = build_ui()
-    demo.launch(server_name="0.0.0.0", server_port=7860, share=False)
+    demo.launch(
+    server_name="0.0.0.0",
+    server_port=7860,
+    share=False,
+    css=CSS,
+    theme=gr.themes.Base(),
+)
