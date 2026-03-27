@@ -13,7 +13,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 import gradio as gr
 
+from backend.persistence import pull_data, push_data
+
 load_dotenv()
+
+# Pull persisted data from HF Dataset on startup
+pull_data()
 
 
 # ---------------------------------------------------------------------------
@@ -458,6 +463,7 @@ def build_ui() -> gr.Blocks:
             if not username:
                 return gr.update(), "", "⚠ Not signed in."
             _be()["create_notebook"](username, name.strip())
+            push_data()
             choices = _nb_choices(username)
             return gr.update(choices=choices, value=choices[-1]), "", f"✦ Created **{name.strip()}**"
 
@@ -472,6 +478,7 @@ def build_ui() -> gr.Blocks:
             if not nb_id:
                 return gr.update(), "⚠ No notebook selected."
             _be()["delete_notebook"](username, nb_id)
+            push_data()
             choices = _nb_choices(username)
             return gr.update(choices=choices, value=choices[0] if choices else None), "✦ Deleted."
 
@@ -509,6 +516,7 @@ def build_ui() -> gr.Blocks:
                     msgs.append(f"✦ **{res['source_name']}** — {res['chunk_count']} chunks ({res['strategy']})")
                 except Exception as e:
                     msgs.append(f"✕ {e}")
+            push_data()
             return "\n\n".join(msgs), _sources_md(username, nb_id)
 
         btn_upload.click(do_upload, inputs=[inp_files, s_nb_id, s_user], outputs=[md_ingest, md_sources])
@@ -524,6 +532,7 @@ def build_ui() -> gr.Blocks:
                 msg = f"✦ **{res['source_name']}** — {res['chunk_count']} chunks ({res['strategy']})"
             except Exception as e:
                 msg = f"✕ {e}"
+            push_data()
             return msg, _sources_md(username, nb_id)
 
         btn_url.click(do_url, inputs=[inp_url, s_nb_id, s_user], outputs=[md_ingest, md_sources])

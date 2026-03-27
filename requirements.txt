@@ -1,6 +1,9 @@
 # LLM + embeddings + TTS
 openai>=1.0.0
 
+# Gradio
+gradio==5.23.0
+
 # Vector database
 chromadb>=0.5.0
 
@@ -13,3 +16,6 @@ trafilatura>=1.6.0
 python-dotenv>=1.0.0
 requests>=2.31.0
 beautifulsoup4>=4.12.0
+
+# HF persistence
+huggingface_hub>=0.20.0
