@@ -8,13 +8,14 @@ import os
 from pathlib import Path
 from typing import Optional, Tuple
 
-import openai
+from openai import OpenAI
 
 from backend import storage
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 OPENAI_PODCAST_VOICE = os.getenv("OPENAI_PODCAST_VOICE", "alloy")
+client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 
 def _get_extracted_text(username: str, nb_id: str) -> str:
@@ -35,18 +36,19 @@ def _get_extracted_text(username: str, nb_id: str) -> str:
 def _ensure_openai_key() -> None:
     if not OPENAI_API_KEY:
         raise RuntimeError("OPENAI_API_KEY not set. Set it in your environment variables.")
-    openai.api_key = OPENAI_API_KEY
+    if client is None:
+        raise RuntimeError("OpenAI client could not be initialized.")
 
 
 def _openai_chat(messages, model: str = OPENAI_MODEL, max_tokens: int = 1100):
     _ensure_openai_key()
-    resp = openai.ChatCompletion.create(
+    resp = client.chat.completions.create(
         model=model,
         messages=messages,
         temperature=0.22,
         max_tokens=max_tokens,
     )
-    return resp.choices[0].message.content.strip()
+    return (resp.choices[0].message.content or "").strip()
 
 
 def _generate_from_content(username: str, nb_id: str, prompt: str) -> str:
@@ -120,26 +122,13 @@ def _generate_podcast_transcript(nb_id: str, username: str) -> str:
 def _create_tts_audio(text: str, output_path: Path) -> Optional[str]:
     try:
         _ensure_openai_key()
-
-        if hasattr(openai, "Audio"):
-            # New OpenAI library has audio endpoint as openai.Audio.speech.create
-            audio_resp = openai.Audio.speech.create(
-                model="gpt-4o-mini-tts",
-                voice=OPENAI_PODCAST_VOICE,
-                input=text,
-            )
-            if hasattr(audio_resp, "content"):
-                output_path.write_bytes(audio_resp.content)
-                return str(output_path)
-            if isinstance(audio_resp, dict) and audio_resp.get("b64_json"):
-                import base64
-
-                data = base64.b64decode(audio_resp["b64_json"])
-                output_path.write_bytes(data)
-                return str(output_path)
-
-        # fallback to no audio if API not capable
-        return None
+        audio_resp = client.audio.speech.create(
+            model="gpt-4o-mini-tts",
+            voice=OPENAI_PODCAST_VOICE,
+            input=text,
+        )
+        output_path.write_bytes(audio_resp.read())
+        return str(output_path)
     except Exception:
         return None
 
