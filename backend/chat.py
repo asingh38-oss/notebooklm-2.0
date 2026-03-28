@@ -1,53 +1,124 @@
-from openai import OpenAI
-from backend.retrieval import get_retriever
+"""
+chat.py
 
-client = OpenAI()
+CLI chat interface for the coding assistant.
+Handles the user interaction loop and routes messages to the agent / LLM.
+"""
 
-def _format_history(history: list) -> list:
-    return [
-        {"role": msg["role"], "content": msg["content"]}
-        for msg in history if msg.get("content")
-    ]
+from rich.console import Console
+from rich.prompt import Prompt
 
-def chat_with_sources(message: str, nb_id: str, username: str, history: list) -> str:
+from artifacts import (
+    show_banner,
+    render_user_task,
+    render_assistant_message,
+    render_error,
+)
+
+from retrieval import create_retriever
+
+
+class ChatSession:
+    """
+    Main CLI chat session.
+    """
+
+    def __init__(self, llm=None, retriever=None):
+        self.console = Console()
+        self.llm = llm
+        self.retriever = retriever
+
+    def process_query(self, query: str) -> str:
+        """
+        Process a user query.
+
+        If retrieval is available, augment context.
+        """
+        context = ""
+
+        if self.retriever:
+            try:
+                docs = self.retriever.retrieve_as_text(query)
+                context = f"\nRelevant Documentation:\n{docs}\n"
+            except Exception as e:
+                render_error(self.console, "Retrieval failed", str(e))
+
+        prompt = f"""
+You are an AI coding assistant.
+
+User Question:
+{query}
+
+{context}
+
+Provide a helpful answer.
+"""
+
+        if self.llm is None:
+            return "No LLM configured."
+
+        try:
+            response = self.llm.invoke(prompt)
+            return getattr(response, "content", str(response))
+        except Exception as e:
+            return f"LLM error: {e}"
+
+    def start(self):
+        """
+        Start the CLI chat loop.
+        """
+
+        show_banner(self.console, "ForgeCode", "Autonomous CLI coding assistant")
+
+        self.console.print("\nType 'exit' to quit.\n")
+
+        while True:
+            try:
+                user_input = Prompt.ask("[bold yellow]You[/bold yellow]")
+
+                if user_input.lower() in ["exit", "quit"]:
+                    self.console.print("\nGoodbye.\n")
+                    break
+
+                render_user_task(self.console, user_input)
+
+                response = self.process_query(user_input)
+
+                render_assistant_message(self.console, response)
+
+            except KeyboardInterrupt:
+                self.console.print("\nSession ended.\n")
+                break
+
+            except Exception as e:
+                render_error(self.console, "Unexpected error", str(e))
+
+
+def run_chat(llm=None):
+    """
+    Entry point for starting a chat session.
+    """
+
+    retriever = None
+
     try:
-        retrieve = get_retriever(nb_id, username=username, top_k=5)
-        chunks, metas = retrieve(message)
+        from langchain_ollama import OllamaEmbeddings
 
-        context_parts = []
-        for chunk, meta in zip(chunks, metas):
-            source = meta.get("source", "unknown")
-            chunk_idx = meta.get("chunk_index", meta.get("chunk", "?"))
-            context_parts.append(f"[Source: {source} | Chunk: {chunk_idx}]\n{chunk}")
-        context = "\n\n---\n\n".join(context_parts)
+        embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
-        system_prompt = (
-            "You are a helpful research assistant. "
-            "Answer the user's question using ONLY the context provided below. "
-            "After each claim, cite the source inline: [Source: filename | Chunk: N]. "
-            "If the context does not contain enough information, say so.\n\n"
-            f"Context:\n{context}"
+        retriever = create_retriever(
+            persist_directory="./chroma_db",
+            embedding_model=embeddings,
+            llm=llm,
+            strategy="fusion",
         )
 
-        messages = [{"role": "system", "content": system_prompt}]
-        messages += _format_history(history)
-        messages.append({"role": "user", "content": message})
+    except Exception:
+        pass
 
-        response = client.chat.completions.create(
-            model="gpt-4o", messages=messages, temperature=0.3,
-        )
-        answer = response.choices[0].message.content
+    session = ChatSession(llm=llm, retriever=retriever)
+    session.start()
 
-        seen, source_lines = set(), []
-        for meta in metas:
-            src = meta.get("source", "unknown")
-            if src not in seen and src not in ("none", "error"):
-                seen.add(src)
-                source_lines.append(f"- {src}")
 
-        if source_lines:
-            answer += "\n\nSources consulted:\n" + "\n".join(source_lines)
-
-        return answer
-
-    except Exception as e:
+if __name__ == "__main__":
+    run_chat()
