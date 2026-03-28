@@ -35,6 +35,7 @@ def _parse_users() -> dict[str, str]:
             users[u.strip()] = p.strip()
     return users
 
+
 USERS = _parse_users()
 
 
@@ -62,15 +63,15 @@ def _be():
     from backend.chat import chat_with_sources
     from backend.artifacts import generate_report, generate_quiz, generate_podcast
     return {
-        "get_notebooks":   get_user_notebooks,
+        "get_notebooks": get_user_notebooks,
         "create_notebook": create_notebook_for_user,
         "delete_notebook": delete_notebook,
-        "list_sources":    list_indexed_sources,
-        "ingest":          ingest_source,
-        "chat":            chat_with_sources,
-        "report":          generate_report,
-        "quiz":            generate_quiz,
-        "podcast":         generate_podcast,
+        "list_sources": list_indexed_sources,
+        "ingest": ingest_source,
+        "chat": chat_with_sources,
+        "report": generate_report,
+        "quiz": generate_quiz,
+        "podcast": generate_podcast,
     }
 
 
@@ -150,6 +151,7 @@ body, .gradio-container {
     border-radius: 18px;
     box-shadow: 0 0 80px var(--glow);
 }
+
 #login-title {
     font-family: var(--display);
     font-size: 2rem;
@@ -159,6 +161,7 @@ body, .gradio-container {
     color: var(--text);
     letter-spacing: -0.5px;
 }
+
 #login-sub {
     font-size: 0.72rem;
     color: var(--muted);
@@ -176,11 +179,13 @@ body, .gradio-container {
     background: var(--bg2);
     border-bottom: 1px solid var(--border);
 }
+
 #hdr-title {
     font-family: var(--display);
     font-size: 1.35rem;
     color: var(--text);
 }
+
 #hdr-title span { color: var(--accent2); }
 
 #nb-bar {
@@ -200,16 +205,19 @@ body, .gradio-container {
     border-radius: var(--r) !important;
     transition: all 0.18s ease !important;
 }
+
 .gr-button-primary {
     background: var(--accent) !important;
     color: #fff !important;
     border: none !important;
 }
+
 .gr-button-primary:hover {
     background: var(--accent2) !important;
     box-shadow: 0 0 18px var(--glow) !important;
     transform: translateY(-1px) !important;
 }
+
 .gr-button-stop {
     background: transparent !important;
     color: var(--err) !important;
@@ -225,6 +233,7 @@ input, textarea, .gr-textbox textarea {
     font-size: 0.85rem !important;
     transition: border-color 0.2s, box-shadow 0.2s !important;
 }
+
 input:focus, textarea:focus {
     border-color: var(--accent) !important;
     box-shadow: 0 0 0 3px var(--glow) !important;
@@ -253,6 +262,7 @@ label, .gr-block-label {
     padding: 12px 20px !important;
     transition: all 0.2s !important;
 }
+
 .tab-nav button.selected {
     color: var(--accent2) !important;
     border-bottom-color: var(--accent) !important;
@@ -274,6 +284,7 @@ label, .gr-block-label {
     line-height: 1.75 !important;
     color: var(--text) !important;
 }
+
 .gr-markdown h1, .gr-markdown h2, .gr-markdown h3 {
     font-family: var(--display) !important;
     color: var(--text) !important;
@@ -294,9 +305,9 @@ select, .gr-dropdown select {
     margin-bottom: 8px !important;
 }
 
-.ok   { color: var(--ok)   !important; }
+.ok   { color: var(--ok) !important; }
 .warn { color: var(--warn) !important; }
-.err  { color: var(--err)  !important; }
+.err  { color: var(--err) !important; }
 
 .gr-file-upload {
     background: var(--bg3) !important;
@@ -318,11 +329,14 @@ audio { width: 100%; border-radius: var(--r); }
 # ---------------------------------------------------------------------------
 
 def build_ui() -> gr.Blocks:
-
-    with gr.Blocks(title="NotebookLM 2.0") as demo:
+    with gr.Blocks(
+        title="NotebookLM 2.0",
+        css=CSS,
+        theme=gr.themes.Base(),
+    ) as demo:
 
         # ── Persistent state ───────────────────────────────────────────────
-        s_user  = gr.State("")
+        s_user = gr.State("")
         s_nb_id = gr.State("")
 
         # ==================================================================
@@ -331,8 +345,8 @@ def build_ui() -> gr.Blocks:
         with gr.Column(elem_id="login-wrap", visible=True) as screen_login:
             gr.HTML('<div id="login-title">NotebookLM 2.0</div>')
             gr.HTML('<div id="login-sub">AI Research Assistant</div>')
-            inp_user  = gr.Textbox(label="Username", placeholder="username")
-            inp_pass  = gr.Textbox(label="Password", placeholder="password", type="password")
+            inp_user = gr.Textbox(label="Username", placeholder="username")
+            inp_pass = gr.Textbox(label="Password", placeholder="password", type="password")
             btn_login = gr.Button("Sign In", variant="primary")
             msg_login = gr.Markdown("")
 
@@ -348,10 +362,15 @@ def build_ui() -> gr.Blocks:
 
             # Notebook bar
             with gr.Row(elem_id="nb-bar"):
-                dd_nb       = gr.Dropdown(choices=[], label="Active Notebook", scale=4, interactive=True)
-                inp_nb_name = gr.Textbox(placeholder="New notebook name…", label="", scale=3, show_label=False)
-                btn_create  = gr.Button("＋ Create", scale=1, variant="primary")
-                btn_delete  = gr.Button("✕ Delete",  scale=1, variant="stop")
+                dd_nb = gr.Dropdown(choices=[], label="Active Notebook", scale=4, interactive=True)
+                inp_nb_name = gr.Textbox(
+                    placeholder="New notebook name…",
+                    label="",
+                    scale=3,
+                    show_label=False
+                )
+                btn_create = gr.Button("＋ Create", scale=1, variant="primary")
+                btn_delete = gr.Button("✕ Delete", scale=1, variant="stop")
 
             md_nb_status = gr.Markdown("")
 
@@ -365,11 +384,15 @@ def build_ui() -> gr.Blocks:
                         height=460,
                         show_label=False,
                         bubble_full_width=False,
+                        type="tuples",
                     )
                     with gr.Row():
                         inp_chat = gr.Textbox(
                             placeholder="Ask anything about your sources…",
-                            label="", show_label=False, scale=5, lines=1,
+                            label="",
+                            show_label=False,
+                            scale=5,
+                            lines=1,
                         )
                         btn_send = gr.Button("Send →", scale=1, variant="primary")
                     btn_clear = gr.Button("Clear chat", size="sm")
@@ -379,7 +402,7 @@ def build_ui() -> gr.Blocks:
                     with gr.Row():
                         with gr.Column(scale=1):
                             gr.Markdown("### Upload Files")
-                            inp_files  = gr.File(
+                            inp_files = gr.File(
                                 label="PDF / PPTX / TXT",
                                 file_types=[".pdf", ".pptx", ".txt"],
                                 file_count="multiple",
@@ -393,14 +416,14 @@ def build_ui() -> gr.Blocks:
                     md_ingest = gr.Markdown("")
                     gr.Markdown("---")
                     gr.Markdown("### Indexed Sources")
-                    md_sources  = gr.Markdown("_No sources indexed yet._")
+                    md_sources = gr.Markdown("_No sources indexed yet._")
                     btn_refresh = gr.Button("↻ Refresh", size="sm")
 
                 # TAB 3 — ARTIFACTS
                 with gr.TabItem("✨  Artifacts"):
                     with gr.Row():
-                        btn_report  = gr.Button("📄  Generate Report",  variant="primary", scale=1)
-                        btn_quiz    = gr.Button("❓  Generate Quiz",    variant="primary", scale=1)
+                        btn_report = gr.Button("📄  Generate Report", variant="primary", scale=1)
+                        btn_quiz = gr.Button("❓  Generate Quiz", variant="primary", scale=1)
                         btn_podcast = gr.Button("🎙️  Generate Podcast", variant="primary", scale=1)
 
                     md_art_status = gr.Markdown("")
@@ -411,7 +434,7 @@ def build_ui() -> gr.Blocks:
                         md_quiz = gr.Markdown("")
                     with gr.Accordion("🎙️  Podcast", open=False):
                         md_transcript = gr.Markdown("")
-                        aud_podcast   = gr.Audio(label="Listen", visible=False)
+                        aud_podcast = gr.Audio(label="Listen", visible=False)
 
         # ==================================================================
         # EVENT HANDLERS
@@ -422,18 +445,25 @@ def build_ui() -> gr.Blocks:
             ok, result = login(username, password)
             if ok:
                 choices = _nb_choices(result)
+                first_choice = choices[0] if choices else None
+                _, first_nb_id = _parse_choice(first_choice) if first_choice else ("", "")
                 return (
                     gr.update(visible=False),
                     gr.update(visible=True),
                     result,
-                    gr.update(choices=choices, value=choices[0] if choices else None),
+                    first_nb_id,
+                    gr.update(choices=choices, value=first_choice),
                     f"✦ **{result}**",
                     "",
                 )
+
             return (
                 gr.update(visible=True),
                 gr.update(visible=False),
-                "", gr.update(), "",
+                "",
+                "",
+                gr.update(),
+                "",
                 f"⚠ {result}",
             )
 
@@ -441,7 +471,7 @@ def build_ui() -> gr.Blocks:
             trigger(
                 do_login,
                 inputs=[inp_user, inp_pass],
-                outputs=[screen_login, screen_main, s_user, dd_nb, lbl_user, msg_login],
+                outputs=[screen_login, screen_main, s_user, s_nb_id, dd_nb, lbl_user, msg_login],
             )
 
         # ── Notebook selection ─────────────────────────────────────────────
@@ -454,44 +484,81 @@ def build_ui() -> gr.Blocks:
         # ── Create notebook ────────────────────────────────────────────────
         def do_create(username, name):
             if not name.strip():
-                return gr.update(), "", "⚠ Enter a notebook name."
+                return gr.update(), "", "", "⚠ Enter a notebook name."
             if not username:
-                return gr.update(), "", "⚠ Not signed in."
+                return gr.update(), "", "", "⚠ Not signed in."
+
             _be()["create_notebook"](username, name.strip())
             choices = _nb_choices(username)
-            return gr.update(choices=choices, value=choices[-1]), "", f"✦ Created **{name.strip()}**"
+            selected = choices[-1] if choices else None
+            _, nb_id = _parse_choice(selected) if selected else ("", "")
+            return (
+                gr.update(choices=choices, value=selected),
+                "",
+                nb_id,
+                f"✦ Created **{name.strip()}**",
+            )
 
         btn_create.click(
             do_create,
             inputs=[s_user, inp_nb_name],
-            outputs=[dd_nb, inp_nb_name, md_nb_status],
+            outputs=[dd_nb, inp_nb_name, s_nb_id, md_nb_status],
         )
 
         # ── Delete notebook ────────────────────────────────────────────────
         def do_delete(username, nb_id):
             if not nb_id:
-                return gr.update(), "⚠ No notebook selected."
+                return gr.update(), "", "⚠ No notebook selected."
+
             _be()["delete_notebook"](username, nb_id)
             choices = _nb_choices(username)
-            return gr.update(choices=choices, value=choices[0] if choices else None), "✦ Deleted."
+            selected = choices[0] if choices else None
+            _, new_nb_id = _parse_choice(selected) if selected else ("", "")
+            return (
+                gr.update(choices=choices, value=selected),
+                new_nb_id,
+                "✦ Deleted.",
+            )
 
-        btn_delete.click(do_delete, inputs=[s_user, s_nb_id], outputs=[dd_nb, md_nb_status])
+        btn_delete.click(
+            do_delete,
+            inputs=[s_user, s_nb_id],
+            outputs=[dd_nb, s_nb_id, md_nb_status],
+        )
 
         # ── Chat ───────────────────────────────────────────────────────────
         def do_chat(message, nb_id, username, history):
             if not message.strip():
                 return history, ""
+
+            history = history or []
+
             if not nb_id:
-                history = (history or []) + [{"role": "assistant", "content": "⚠ Select a notebook first."}]
+                history.append((message, "⚠ Select a notebook first."))
                 return history, ""
-            history = list(history or [])
-            history.append({"role": "user", "content": message})
-            reply = _be()["chat"](message, nb_id, username, history[:-1])
-            history.append({"role": "assistant", "content": reply})
+
+            # Convert tuple chat history into dict format expected by backend.chat
+            formatted_history = []
+            for user_msg, assistant_msg in history:
+                if user_msg:
+                    formatted_history.append({"role": "user", "content": user_msg})
+                if assistant_msg:
+                    formatted_history.append({"role": "assistant", "content": assistant_msg})
+
+            reply = _be()["chat"](message, nb_id, username, formatted_history)
+            history.append((message, reply))
             return history, ""
 
-        btn_send.click(do_chat, inputs=[inp_chat, s_nb_id, s_user, chatbot], outputs=[chatbot, inp_chat])
-        inp_chat.submit(do_chat, inputs=[inp_chat, s_nb_id, s_user, chatbot], outputs=[chatbot, inp_chat])
+        btn_send.click(
+            do_chat,
+            inputs=[inp_chat, s_nb_id, s_user, chatbot],
+            outputs=[chatbot, inp_chat]
+        )
+        inp_chat.submit(
+            do_chat,
+            inputs=[inp_chat, s_nb_id, s_user, chatbot],
+            outputs=[chatbot, inp_chat]
+        )
         btn_clear.click(lambda: [], outputs=[chatbot])
 
         # ── Ingest files ───────────────────────────────────────────────────
@@ -500,18 +567,26 @@ def build_ui() -> gr.Blocks:
                 return "⚠ Select a notebook first.", _sources_md(username, nb_id)
             if not files:
                 return "⚠ No files selected.", _sources_md(username, nb_id)
+
             msgs = []
             for f in files:
                 path = f.name if hasattr(f, "name") else str(f)
-                raw  = Path(path).read_bytes()
+                raw = Path(path).read_bytes()
                 try:
                     res = _be()["ingest"](username, nb_id, path, raw_bytes=raw)
-                    msgs.append(f"✦ **{res['source_name']}** — {res['chunk_count']} chunks ({res['strategy']})")
+                    msgs.append(
+                        f"✦ **{res['source_name']}** — {res['chunk_count']} chunks ({res['strategy']})"
+                    )
                 except Exception as e:
                     msgs.append(f"✕ {e}")
+
             return "\n\n".join(msgs), _sources_md(username, nb_id)
 
-        btn_upload.click(do_upload, inputs=[inp_files, s_nb_id, s_user], outputs=[md_ingest, md_sources])
+        btn_upload.click(
+            do_upload,
+            inputs=[inp_files, s_nb_id, s_user],
+            outputs=[md_ingest, md_sources]
+        )
 
         # ── Ingest URL ─────────────────────────────────────────────────────
         def do_url(url, nb_id, username):
@@ -519,14 +594,20 @@ def build_ui() -> gr.Blocks:
                 return "⚠ Select a notebook first.", _sources_md(username, nb_id)
             if not url.strip():
                 return "⚠ Enter a URL.", _sources_md(username, nb_id)
+
             try:
                 res = _be()["ingest"](username, nb_id, url.strip())
                 msg = f"✦ **{res['source_name']}** — {res['chunk_count']} chunks ({res['strategy']})"
             except Exception as e:
                 msg = f"✕ {e}"
+
             return msg, _sources_md(username, nb_id)
 
-        btn_url.click(do_url, inputs=[inp_url, s_nb_id, s_user], outputs=[md_ingest, md_sources])
+        btn_url.click(
+            do_url,
+            inputs=[inp_url, s_nb_id, s_user],
+            outputs=[md_ingest, md_sources]
+        )
 
         # ── Refresh sources ────────────────────────────────────────────────
         btn_refresh.click(
@@ -541,7 +622,11 @@ def build_ui() -> gr.Blocks:
                 return "⚠ Select a notebook first.", ""
             return "✦ Report generated.", _be()["report"](nb_id, username)
 
-        btn_report.click(do_report, inputs=[s_nb_id, s_user], outputs=[md_art_status, md_report])
+        btn_report.click(
+            do_report,
+            inputs=[s_nb_id, s_user],
+            outputs=[md_art_status, md_report]
+        )
 
         # ── Quiz ───────────────────────────────────────────────────────────
         def do_quiz(nb_id, username):
@@ -549,14 +634,23 @@ def build_ui() -> gr.Blocks:
                 return "⚠ Select a notebook first.", ""
             return "✦ Quiz generated.", _be()["quiz"](nb_id, username)
 
-        btn_quiz.click(do_quiz, inputs=[s_nb_id, s_user], outputs=[md_art_status, md_quiz])
+        btn_quiz.click(
+            do_quiz,
+            inputs=[s_nb_id, s_user],
+            outputs=[md_art_status, md_quiz]
+        )
 
         # ── Podcast ────────────────────────────────────────────────────────
         def do_podcast(nb_id, username):
             if not nb_id:
                 return "⚠ Select a notebook first.", "", gr.update(visible=False)
+
             transcript, audio_path = _be()["podcast"](nb_id, username)
-            audio_update = gr.update(value=audio_path, visible=True) if audio_path else gr.update(visible=False)
+            audio_update = (
+                gr.update(value=audio_path, visible=True)
+                if audio_path
+                else gr.update(visible=False)
+            )
             return "✦ Podcast generated.", transcript, audio_update
 
         btn_podcast.click(
@@ -574,10 +668,8 @@ def build_ui() -> gr.Blocks:
 
 if __name__ == "__main__":
     demo = build_ui()
-    demo.launch(
+    demo.queue().launch(
         server_name="0.0.0.0",
         server_port=7860,
         share=False,
-        css=CSS,
-        theme=gr.themes.Base(),
     )
