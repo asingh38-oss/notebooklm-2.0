@@ -4,7 +4,7 @@ emoji: 📓
 colorFrom: indigo
 colorTo: purple
 sdk: gradio
-sdk_version: "4.42.0"
+sdk_version: 5.23.0
 app_file: app.py
 pinned: false
 ---
@@ -79,14 +79,14 @@ Deployment notes:
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/asingh38-oss/notebooklm-2.0.git
+git clone https://github.com/your-org/notebooklm-2.0.git
 cd notebooklm-2.0
 ```
 
 2. Create and activate a virtual environment:
 
 ```bash
-python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate
 ```
 
@@ -96,118 +96,69 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. Create a `.env` file from the example:
+4. Create a `.env` file at the project root and set your environment variables.
+
+5. Start the app locally:
 
 ```bash
-cp .env.example .env
+python app.py
 ```
 
-5. Fill in at least:
+The app will launch a local Gradio interface. Open the printed URL in your browser.
+
+## Environment Variables
+
+| Name                  | Required | Default                  | Description |
+|-----------------------|----------|--------------------------|-------------|
+| `OPENAI_API_KEY`      | yes      | n/a                      | OpenAI API key for embeddings, chat, and artifact generation |
+| `USERS`               | yes      | `demo:demo`              | Comma-separated login credentials in `user:pass` format |
+| `OPENAI_MODEL`        | no       | `gpt-4o`                 | OpenAI model used for artifact generation |
+| `OPENAI_PODCAST_VOICE`| no       | `alloy`                  | Voice for podcast text-to-speech generation |
+| `CHUNK_SIZE`          | no       | `800`                    | Document chunk size for embedding ingestion |
+| `CHUNK_OVERLAP`       | no       | `150`                    | Token overlap between ingestion chunks |
+| `EMBED_MODEL`         | no       | `text-embedding-3-small` | OpenAI embedding model used by ChromaDB |
+
+Example `.env` contents:
 
 ```env
-OPENAI_API_KEY=your_openai_key_here
-USERS=demo:demo
+OPENAI_API_KEY=sk-...
+USERS=alice:pass1,bob:pass2
+OPENAI_MODEL=gpt-4o
+OPENAI_PODCAST_VOICE=alloy
+CHUNK_SIZE=800
+CHUNK_OVERLAP=150
+EMBED_MODEL=text-embedding-3-small
 ```
-
-6. Start the app:
-
-```bash
-python3 app.py
-```
-
-7. Open the local Gradio URL printed in the terminal, then sign in with one of the `USERS` credentials.
-
-## Usage Guide
-
-### 1. Sign in
-
-Use a username and password from the `USERS` environment variable.
-
-### 2. Create a notebook
-
-Enter a notebook name in the top bar and click `Create`.
-
-### 3. Add sources
-
-You can:
-
-- Upload PDF, PPTX, or TXT files
-- Paste a URL for web ingestion
-
-Each source is extracted, chunked, embedded, and stored in a Chroma collection scoped to that notebook.
-
-### 4. Chat with your sources
-
-Open the `Chat` tab and ask questions about the indexed material. Responses are generated with notebook-specific retrieved context and source citations.
-
-### 5. Generate artifacts
-
-Open the `Artifacts` tab to generate:
-
-- Study report
-- Multiple-choice quiz
-- Podcast transcript
-- Optional podcast audio when TTS succeeds
 
 ## Project Structure
 
-```text
-notebooklm-2.0/
-├── app.py
-├── requirements.txt
-├── .env.example
-├── backend/
-│   ├── __init__.py
-│   ├── artifacts.py
-│   ├── chat.py
-│   ├── ingestion.py
-│   ├── retrieval.py
-│   └── storage.py
-└── data/
-    └── users/
-```
+- `app.py` — Gradio frontend and login workflow.
+- `requirements.txt` — Python dependencies.
+- `backend/` — backend application logic:
+  - `artifacts.py` — generate reports, quizzes, and podcasts from notebook content.
+  - `chat.py` — RAG chat interface for notebook sources.
+  - `ingestion.py` — extract, chunk, embed, and store documents into ChromaDB.
+  - `retrieval.py` — retrieval utilities and vector database helpers.
+  - `storage.py` — notebook and user persistence helpers.
 
-File overview:
+## Usage Guide
 
-- [`app.py`](/Users/darellsam/Desktop/NotebookLM 2.0/notebooklm-2.0/app.py): Gradio UI and app entrypoint for local runs and HF Spaces
-- [`backend/storage.py`](/Users/darellsam/Desktop/NotebookLM 2.0/notebooklm-2.0/backend/storage.py): notebook, artifact, and chat persistence helpers
-- [`backend/ingestion.py`](/Users/darellsam/Desktop/NotebookLM 2.0/notebooklm-2.0/backend/ingestion.py): extraction, chunking, embedding, and Chroma indexing
-- [`backend/chat.py`](/Users/darellsam/Desktop/NotebookLM 2.0/notebooklm-2.0/backend/chat.py): retrieval-grounded notebook chat
-- [`backend/artifacts.py`](/Users/darellsam/Desktop/NotebookLM 2.0/notebooklm-2.0/backend/artifacts.py): report, quiz, and podcast generation
-- [`backend/retrieval.py`](/Users/darellsam/Desktop/NotebookLM 2.0/notebooklm-2.0/backend/retrieval.py): advanced retrieval utilities for the project RAG work
+1. Open the app in your browser.
+2. Login with one of the credentials configured in `USERS`.
+3. Create a new notebook for your topic.
+4. Upload source documents or paste a URL in the Sources tab.
+5. Ask questions in the Chat tab; answers are grounded in your uploaded sources.
+6. Use the Artifacts tab to generate:
+   - study reports
+   - quizzes
+   - podcasts (transcript + audio)
 
-## Data Storage
+## Hugging Face Space
 
-Per-user notebook data is stored like this:
+Live demo: https://huggingface.co/spaces/asingh38/notebooklm-2.0
 
-```text
-data/users/<username>/notebooks/
-├── index.json
-└── <notebook-id>/
-    ├── artifacts/
-    ├── chat/
-    ├── chroma/
-    ├── files_extracted/
-    └── files_raw/
-```
+## Notes
 
-This keeps notebooks isolated by user and allows each notebook to maintain its own vector store.
-
-## Notes for Evaluators
-
-- Default chunking strategy is recursive chunking
-- Retrieval is notebook-scoped, so only the active notebook's indexed sources are searched
-- Artifact generation uses OpenAI directly and saves outputs back into the notebook directory
-- The app uses lazy backend imports to reduce cold-start failures on Hugging Face Spaces
-
-## Troubleshooting
-
-- `Invalid username or password`: confirm the `USERS` secret uses `username:password` pairs separated by commas
-- `OPENAI_API_KEY not set`: add the key locally in `.env` or in Space secrets
-- Ingestion fails for URLs: some sites block scraping or do not expose enough readable text
-- No answers from chat: make sure you created a notebook and ingested at least one source first
-- Podcast audio missing: transcript generation succeeded, but TTS may have failed or been unavailable
-
-## License
-
-This repository is intended for academic project use unless your team adds a separate license file.
+- The app uses local `data/` storage for notebooks, source text, and ChromaDB persistence.
+- If `USERS` is not set, the app defaults to `demo:demo` for a quick local trial.
+- For production deployments, keep your `OPENAI_API_KEY` secret and avoid committing `.env` to version control.

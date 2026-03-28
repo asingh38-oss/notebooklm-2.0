@@ -1,152 +1,97 @@
-"""
-backend/artifacts.py
---------------------
-Generate notebook artifacts: report, quiz, and podcast (transcript + optional audio).
-"""
-
-import os
 from pathlib import Path
-from typing import Optional, Tuple
-
 from openai import OpenAI
+from backend.retrieval import get_retriever
+from backend.storage import save_artifact, notebook_dir
 
-from backend import storage
+client = OpenAI()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
-OPENAI_PODCAST_VOICE = os.getenv("OPENAI_PODCAST_VOICE", "alloy")
-client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+def _build_context(nb_id: str, username: str, query: str = "summarize all content") -> str:
+    retrieve = get_retriever(nb_id, username=username, top_k=10)
+    chunks, metas = retrieve(query)
+    parts = []
+    for chunk, meta in zip(chunks, metas):
+        source = meta.get("source", "unknown")
+        parts.append(f"[Source: {source}]\n{chunk}")
+    return "\n\n---\n\n".join(parts)
 
-
-def _get_extracted_text(username: str, nb_id: str) -> str:
-    folder = Path(storage.notebook_dir(username, nb_id)) / "files_extracted"
-    if not folder.exists():
-        return ""
-
-    segments = []
-    for path in sorted(folder.glob("*.txt")):
-        try:
-            segments.append(path.read_text(encoding="utf-8", errors="ignore").strip())
-        except Exception:
-            continue
-
-    return "\n\n".join([s for s in segments if s])
-
-
-def _ensure_openai_key() -> None:
-    if not OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY not set. Set it in your environment variables.")
-    if client is None:
-        raise RuntimeError("OpenAI client could not be initialized.")
-
-
-def _openai_chat(messages, model: str = OPENAI_MODEL, max_tokens: int = 1100):
-    _ensure_openai_key()
-    resp = client.chat.completions.create(
-        model=model,
-        messages=messages,
-        temperature=0.22,
-        max_tokens=max_tokens,
+def _llm(prompt: str, temperature: float = 0.4) -> str:
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=temperature,
     )
-    return (resp.choices[0].message.content or "").strip()
-
-
-def _generate_from_content(username: str, nb_id: str, prompt: str) -> str:
-    content = _get_extracted_text(username, nb_id)
-    if not content:
-        return "_No source content indexed yet. Upload a file or URL in Sources to generate artifacts._"
-
-    # Limit the content to avoid model context overflow while retaining variety.
-    if len(content) > 32000:
-        content = content[:32000] + "\n\n[truncated]"
-
-    messages = [
-        {
-            "role": "system",
-            "content": "You are an assistant that produces clean Markdown artifacts from a set of user notes and documents.",
-        },
-        {
-            "role": "user",
-            "content": f"The user notebook contains the following text:\n\n{content}\n\n{prompt}",
-        },
-    ]
-
-    return _openai_chat(messages)
-
+    return response.choices[0].message.content
 
 def generate_report(nb_id: str, username: str) -> str:
-    """Generate a study report for the selected notebook."""
-    prompt = (
-        "Create a Markdown study report with sections: Overview, Key Concepts, "
-        "Important Details, and Suggested Next Steps. Keep it concise and clearly formatted."
-    )
-
-    report_md = _generate_from_content(username, nb_id, prompt)
-
     try:
-        storage.save_artifact(username, nb_id, "reports", report_md, extension="md")
-    except Exception:
-        pass
-
-    return report_md
-
+        context = _build_context(nb_id, username, query="summarize all key information")
+        prompt = (
+            "Using ONLY the source material provided below, write a comprehensive "
+            "study report in Markdown format. Structure it with:\n"
+            "1. A clear title (# heading)\n"
+            "2. An executive summary\n"
+            "3. Key concepts and themes (## headings)\n"
+            "4. Important details and supporting evidence\n"
+            "5. Conclusions\n\n"
+            "Cite sources inline using [Source: filename] format.\n\n"
+            f"Source Material:\n{context}"
+        )
+        report = _llm(prompt)
+        save_artifact(username, nb_id, "reports", report, extension="md")
+        return report
+    except Exception as e:
+        return f"Error generating report: {e}"
 
 def generate_quiz(nb_id: str, username: str) -> str:
-    """Generate a quiz for the selected notebook."""
-    prompt = (
-        "Create an 8-question multiple-choice quiz (with answers) based on the notebook text. "
-        "Format as Markdown with question numbers, four options each (A-D), and an answer key at the end."
-    )
-
-    quiz_md = _generate_from_content(username, nb_id, prompt)
-
     try:
-        storage.save_artifact(username, nb_id, "quizzes", quiz_md, extension="md")
-    except Exception:
-        pass
-
-    return quiz_md
-
-
-def _generate_podcast_transcript(nb_id: str, username: str) -> str:
-    prompt = (
-        "Produce a friendly podcast transcript (~600-900 words) to teach this content. "
-        "Include an intro, 3 main points, short examples, and a closing takeaway. "
-        "Use a conversational tone as if two hosts are discussing."
-    )
-
-    transcript_md = _generate_from_content(username, nb_id, prompt)
-    return transcript_md
-
-
-def _create_tts_audio(text: str, output_path: Path) -> Optional[str]:
-    try:
-        _ensure_openai_key()
-        audio_resp = client.audio.speech.create(
-            model="gpt-4o-mini-tts",
-            voice=OPENAI_PODCAST_VOICE,
-            input=text,
+        context = _build_context(nb_id, username, query="key facts, concepts, and details")
+        prompt = (
+            "Using ONLY the source material provided below, create a 10-question "
+            "multiple-choice quiz in Markdown format.\n\n"
+            "Format each question exactly like this:\n"
+            "**Q1.** Question text here?\n"
+            "- A) Option one\n"
+            "- B) Option two\n"
+            "- C) Option three\n"
+            "- D) Option four\n\n"
+            "After all 10 questions, include:\n"
+            "## Answer Key\n"
+            "1. A, 2. C, ... with a one-sentence explanation for each.\n\n"
+            f"Source Material:\n{context}"
         )
-        output_path.write_bytes(audio_resp.read())
-        return str(output_path)
-    except Exception:
-        return None
+        quiz = _llm(prompt)
+        save_artifact(username, nb_id, "quizzes", quiz, extension="md")
+        return quiz
+    except Exception as e:
+        return f"Error generating quiz: {e}"
 
-
-def generate_podcast(nb_id: str, username: str) -> Tuple[str, Optional[str]]:
-    """Generate a podcast transcript (and optional audio file)."""
-    transcript = _generate_podcast_transcript(nb_id, username)
-
+def generate_podcast(nb_id: str, username: str) -> tuple[str, str | None]:
     try:
-        storage.save_artifact(username, nb_id, "podcasts", transcript, extension="md")
-    except Exception:
-        pass
+        context = _build_context(nb_id, username, query="main topics and interesting insights")
+        transcript_prompt = (
+            "Using ONLY the source material below, write an engaging podcast script "
+            "as a conversation between two hosts: Alex and Jordan.\n\n"
+            "Guidelines:\n"
+            "- Alex introduces topics and asks questions\n"
+            "- Jordan provides deeper explanations and insights\n"
+            "- Make it conversational, informative, and ~5-7 minutes when read aloud\n"
+            "- Format each line as: **Alex:** text  or  **Jordan:** text\n"
+            "- Start with a brief intro and end with a summary and sign-off\n\n"
+            f"Source Material:\n{context}"
+        )
+        transcript = _llm(transcript_prompt, temperature=0.6)
+        save_artifact(username, nb_id, "podcasts", transcript, extension="md")
 
-    # Attempt TTS output if OpenAI supports it.
-    out_dir = Path(storage.notebook_dir(username, nb_id)) / "artifacts" / "podcasts"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    audio_path = out_dir / "podcast_1.mp3"
+        clean = transcript.replace("**Alex:**", "Alex:").replace("**Jordan:**", "Jordan:")
+        audio_response = client.audio.speech.create(
+            model="tts-1", voice="alloy", input=clean,
+        )
+        podcasts_dir = notebook_dir(username, nb_id) / "artifacts" / "podcasts"
+        podcasts_dir.mkdir(parents=True, exist_ok=True)
+        existing = list(podcasts_dir.glob("*.mp3"))
+        audio_path = str(podcasts_dir / f"podcast_{len(existing) + 1}.mp3")
+        audio_response.stream_to_file(audio_path)
+        return transcript, audio_path
 
-    tts_result = _create_tts_audio(transcript, audio_path)
-
-    return transcript, tts_result
+    except Exception as e:
+        return f"Error generating podcast: {e}", None
