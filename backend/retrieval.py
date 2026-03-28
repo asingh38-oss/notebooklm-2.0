@@ -21,24 +21,20 @@ def get_retriever(nb_id: str, username: str = "default", top_k: int = 5):
                 name="sources",
                 metadata={"hnsw:space": "cosine"},
             )
-
             if collection.count() == 0:
                 return (
                     ["No sources have been ingested yet."],
                     [{"source": "none", "chunk_index": 0}],
                 )
-
             query_embedding = _embed(query)
             results = collection.query(
                 query_embeddings=[query_embedding],
                 n_results=min(top_k, collection.count()),
             )
             return results["documents"][0], results["metadatas"][0]
-
         except Exception as e:
             return (
                 [f"Retrieval error: {e}"],
                 [{"source": "error", "chunk_index": 0}],
             )
-
     return retrieve

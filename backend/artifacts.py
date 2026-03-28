@@ -86,13 +86,11 @@ def generate_podcast(nb_id: str, username: str) -> tuple[str, str | None]:
         audio_response = client.audio.speech.create(
             model="tts-1", voice="alloy", input=clean,
         )
-
         podcasts_dir = notebook_dir(username, nb_id) / "artifacts" / "podcasts"
         podcasts_dir.mkdir(parents=True, exist_ok=True)
         existing = list(podcasts_dir.glob("*.mp3"))
         audio_path = str(podcasts_dir / f"podcast_{len(existing) + 1}.mp3")
         audio_response.stream_to_file(audio_path)
-
         return transcript, audio_path
 
     except Exception as e:

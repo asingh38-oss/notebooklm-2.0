@@ -36,7 +36,7 @@ def chat_with_sources(message: str, nb_id: str, username: str, history: list) ->
         response = client.chat.completions.create(
             model="gpt-4o", messages=messages, temperature=0.3,
         )
-        answer = response.choices[0].message.content
+        answer = response.choices[0].message.content or ""
 
         seen, source_lines = set(), []
         for meta in metas:
