@@ -11,26 +11,68 @@ pinned: false
 
 # NotebookLM 2.0
 
-An AI-powered research assistant. Upload documents, chat with your sources,
-and generate study reports, quizzes, and podcasts — powered by GPT-4o and
-ChromaDB RAG with recursive chunking.
+NotebookLM 2.0 is an AI-powered research assistant built with Gradio, OpenAI, and ChromaDB. It lets users organize sources into notebooks, chat with grounded answers, and generate study artifacts like reports, quizzes, and podcast-style summaries.
+
+## Live Demo
+
+- GitHub Repo: [asingh38-oss/notebooklm-2.0](https://github.com/asingh38-oss/notebooklm-2.0)
+- Hugging Face Space: [NotebookLM 2.0 on Hugging Face](https://huggingface.co/spaces/asingh38-oss/notebooklm-2.0)
 
 ## Features
 
-- **Multi-notebook workspace** — create and manage separate notebooks per topic
-- **Source ingestion** — upload PDF, PPTX, TXT, or paste a URL
-- **RAG chat** — GPT-4o answers grounded in your sources with inline citations
-- **Artifacts** — one-click study report, quiz, and podcast (transcript + audio)
-- **Login system** — simple username/password auth via environment variable
+- Multi-notebook workspace for separate courses, projects, or study topics
+- Source ingestion from PDF, PPTX, TXT, Markdown, and web URLs
+- Retrieval-augmented chat grounded in indexed notebook sources
+- ChromaDB-backed local persistence for notebook-specific document retrieval
+- One-click artifacts for reports, quizzes, and podcast transcripts
+- Optional podcast audio generation with OpenAI text-to-speech
+- Lightweight login system powered by environment variables
+- Hugging Face Spaces-ready Gradio app entry point
+
+## Tech Stack
+
+- Frontend: Gradio
+- LLM + embeddings + TTS: OpenAI API
+- Vector store: ChromaDB
+- Parsing: `pdfplumber`, `python-pptx`, `trafilatura`
+- Config: `python-dotenv`
+
+## Environment Variables
+
+Set these in a local `.env` file or in Hugging Face Space secrets.
+
+| Variable | Required | Example | Purpose |
+|---|---|---|---|
+| `OPENAI_API_KEY` | Yes | `sk-...` | Used for chat, embeddings, artifact generation, and podcast audio |
+| `USERS` | Yes | `demo:demo,alice:pass123` | Login credentials for the app |
+| `CHUNK_SIZE` | No | `800` | Character window size used during ingestion |
+| `CHUNK_OVERLAP` | No | `150` | Overlap between adjacent chunks |
+| `EMBED_MODEL` | No | `text-embedding-3-small` | Embedding model used for Chroma indexing |
+| `OPENAI_MODEL` | No | `gpt-4o` | Model used for report, quiz, and podcast transcript generation |
+| `OPENAI_PODCAST_VOICE` | No | `alloy` | Voice for generated podcast audio |
 
 ## Hugging Face Spaces Setup
 
-Set these in your Space → **Settings → Repository secrets**:
+This project is configured for a Gradio Space through the metadata block at the top of this README.
 
-| Secret           | Description                                          |
-|------------------|------------------------------------------------------|
-| `OPENAI_API_KEY` | Your OpenAI API key                                  |
-| `USERS`          | Comma-separated credentials: `alice:pass1,bob:pass2` |
+Add these in your Space under `Settings -> Repository secrets`:
+
+| Secret | Required | Notes |
+|---|---|---|
+| `OPENAI_API_KEY` | Yes | Needed for chat, embeddings, artifacts, and TTS |
+| `USERS` | Yes | Format: `alice:pass1,bob:pass2` |
+| `CHUNK_SIZE` | No | Optional tuning override |
+| `CHUNK_OVERLAP` | No | Optional tuning override |
+| `EMBED_MODEL` | No | Defaults to `text-embedding-3-small` |
+| `OPENAI_MODEL` | No | Defaults to `gpt-4o` |
+| `OPENAI_PODCAST_VOICE` | No | Defaults to `alloy` |
+
+Deployment notes:
+
+- The Space entrypoint is [`app.py`](/Users/darellsam/Desktop/NotebookLM 2.0/notebooklm-2.0/app.py).
+- User notebooks and indexed data are stored under `data/users/` at runtime.
+- If the Space restarts, only files persisted by the Space storage layer remain available.
+- The first ingestion request may be slower because embeddings and vector collections are created on demand.
 
 ## Local Setup
 
