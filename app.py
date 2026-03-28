@@ -8,7 +8,6 @@ Screens:
               💬 Chat | 📂 Sources | ✨ Artifacts
 """
 
-from email.mime import message
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -330,7 +329,7 @@ audio { width: 100%; border-radius: var(--r); }
 # ---------------------------------------------------------------------------
 
 def build_ui() -> gr.Blocks:
-    with gr.Blocks(title="NotebookLM 2.0") as demo:
+    with gr.Blocks(title="NotebookLM 2.0", css=CSS, theme=gr.themes.Base()) as demo:
 
         # ── Persistent state ───────────────────────────────────────────────
         s_user = gr.State("")
@@ -655,9 +654,7 @@ def build_ui() -> gr.Blocks:
 if __name__ == "__main__":
     demo = build_ui()
     demo.queue().launch(
-        server_name="0.0.0.0",
-        server_port=7860,
-        share=False,
-        css=CSS,
-        theme=gr.themes.Base(),
-    )
+    server_name="0.0.0.0",
+    server_port=7860,
+    share=False,
+)
