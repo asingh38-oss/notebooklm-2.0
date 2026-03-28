@@ -8,6 +8,7 @@ Screens:
               💬 Chat | 📂 Sources | ✨ Artifacts
 """
 
+from email.mime import message
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -329,11 +330,7 @@ audio { width: 100%; border-radius: var(--r); }
 # ---------------------------------------------------------------------------
 
 def build_ui() -> gr.Blocks:
-    with gr.Blocks(
-        title="NotebookLM 2.0",
-        css=CSS,
-        theme=gr.themes.Base(),
-    ) as demo:
+    with gr.Blocks(title="NotebookLM 2.0") as demo:
 
         # ── Persistent state ───────────────────────────────────────────────
         s_user = gr.State("")
@@ -529,23 +526,13 @@ def build_ui() -> gr.Blocks:
         def do_chat(message, nb_id, username, history):
             if not message.strip():
                 return history, ""
-
-            history = history or []
-
+            history = list(history or [])
             if not nb_id:
-                history.append((message, "⚠ Select a notebook first."))
+                history.append({"role": "assistant", "content": "⚠ Select a notebook first."})
                 return history, ""
-
-            # Convert tuple chat history into dict format expected by backend.chat
-            formatted_history = []
-            for user_msg, assistant_msg in history:
-                if user_msg:
-                    formatted_history.append({"role": "user", "content": user_msg})
-                if assistant_msg:
-                    formatted_history.append({"role": "assistant", "content": assistant_msg})
-
-            reply = _be()["chat"](message, nb_id, username, formatted_history)
-            history.append((message, reply))
+            history.append({"role": "user", "content": message})
+            reply = _be()["chat"](message, nb_id, username, history[:-1])
+            history.append({"role": "assistant", "content": reply})
             return history, ""
 
         btn_send.click(
@@ -671,4 +658,6 @@ if __name__ == "__main__":
         server_name="0.0.0.0",
         server_port=7860,
         share=False,
+        css=CSS,
+        theme=gr.themes.Base(),
     )
