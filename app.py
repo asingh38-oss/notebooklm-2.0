@@ -383,8 +383,7 @@ def build_ui() -> gr.Blocks:
                         label="",
                         height=460,
                         show_label=False,
-                        bubble_full_width=False,
-                        type="tuples",
+                        type="messages",
                     )
                     with gr.Row():
                         inp_chat = gr.Textbox(
